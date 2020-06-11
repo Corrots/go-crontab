@@ -1,0 +1,13 @@
+app:
+  debug: true
+
+api:
+  port: ":8070"
+  readTimeout: 5000
+  writeTimeout: 5000
+
+etcd:
+  endpoints: "http://192.168.56.23:2379"
+
+mongodb:
+  addr: "192.168.56.23:27017"
