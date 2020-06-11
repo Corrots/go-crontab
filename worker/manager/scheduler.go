@@ -64,9 +64,8 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 		var res ExecRes
 		// @TODO 获取分布式锁
 		startTime := time.Now()
-		//lock := JM.createLock(job.Name)
-		if false {
-			//log.Println(err)
+		lock := JM.createLock(job.Name)
+		if err := lock.TryLock(); err != nil {
 			res = ExecRes{
 				Execution: e,
 				Error:     err,
@@ -86,7 +85,7 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 			}
 		}
 		s.ResChan <- res
-		return
+		defer lock.Unlock()
 	}(je, plan.Job)
 
 	if _, exist := s.Executions[name]; exist {
@@ -113,7 +112,8 @@ func (s *JobScheduler) run() {
 		case res := <-s.ResChan:
 			if res.Error != nil {
 				log.Printf("exec task {%s} err: %v\n", res.Execution.Name, res.Error)
-				return
+				// 此处不能return，出现异常时会导致任务中断
+				continue
 			}
 			spent := res.EndTime.Sub(res.StartTime).Milliseconds()
 			fmt.Printf("task {%v}, spent %v ms, output: %s\n", res.Execution.Name, spent, res.Output)
@@ -154,14 +154,10 @@ func (s *JobScheduler) eventHandler(e JobEvent) {
 			log.Println(err)
 			return
 		}
-		//s.rwmutex.Lock()
 		s.Plans[e.Job.Name] = plan
-		//s.rwmutex.Unlock()
 	case DeleteEvent:
 		if _, ok := s.Plans[e.Job.Name]; ok {
-			//s.rwmutex.Lock()
 			delete(s.Plans, e.Job.Name)
-			//s.rwmutex.Unlock()
 		}
 	}
 }
