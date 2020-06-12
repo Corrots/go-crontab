@@ -1,54 +1,41 @@
 # go-crontab
 Crontab service of golang
 
-# mongo-go-driver
+## etcd
 
-MongoDB Driver for Go.
-[![GoDoc](https://godoc.org/github.com/mongodb/mongo-go-driver/mongo?status.svg)](https://godoc.org/github.com/mongodb/mongo-go-driver/mongo)
-
--------------------------
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Bugs/Feature Reporting](#bugs-feature-reporting)
-- [Testing / Development](#testing--development)
-- [Continuous Integration](#continuous-integration)
-- [License](#license)
-
--------------------------
-## Requirements
-
-- Go 1.9 or higher. We aim to support the latest supported versions go.
-- MongoDB 3.2 and higher.
-
--------------------------
-## Installation
-
-The recommended way to get started using the MongoDB Go driver is by using `dep` to install the dependency in your project.
-
+### Install
 ```bash
-dep ensure -add github.com/mongodb/mongo-go-driver/mongo
+# Linux
+ETCD_VER=v3.3.20
+
+# choose either URL
+GOOGLE_URL=https://storage.googleapis.com/etcd
+GITHUB_URL=https://github.com/etcd-io/etcd/releases/download
+DOWNLOAD_URL=${GOOGLE_URL}
+
+rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+rm -rf /tmp/etcd-download-test && mkdir -p /tmp/etcd-download-test
+
+curl -L ${DOWNLOAD_URL}/${ETCD_VER}/etcd-${ETCD_VER}-linux-amd64.tar.gz -o /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+tar xzvf /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz -C /tmp/etcd-download-test --strip-components=1
+rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
+
+/tmp/etcd-download-test/etcd --version
+ETCDCTL_API=3 /tmp/etcd-download-test/etcdctl version
+
+cd /tmp/etcd-download-test
+nohup ./etcd --listen-client-urls 'http://0.0.0.0:2379' --advertise-client-urls 'http://0.0.0.0:2379' &
+
+#
+less nohup.out
 ```
-
--------------------------
-## Bugs / Feature Reporting
-
-New Features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
-
--------------------------
-## Testing / Development
-
-To run driver tests, make sure a MongoDB server instance is running at localhost:27017. Using make, you can run `make` (on windows, run `nmake`).
-This will run coverage, run go-lint, run go-vet, and build the examples.
-
-The MongoDB Go Driver is not feature complete, so any help is appreciated. Check out the [project page](https://jira.mongodb.org/browse/GODRIVER)
-for tickets that need completing. See our [contribution guidelines](CONTRIBUTING.md) for details.
-
--------------------------
-## Continuous Integration
-
-Commits to master are run automatically on [evergreen](https://evergreen.mongodb.com/waterfall/mongo-go-driver).
-
--------------------------
-## License
-
-The MongoDB Go Driver is licensed under the [Apache License](LICENSE).
+### etcdctl
+```bash
+cd /tmp/etcd-download-test
+# get
+ETCDCTL_API=3 ./etcdctl get /cron/lock/ --prefix
+# watch
+ETCDCTL_API=3 ./etcdctl get /cron/lock/ --prefix
+# delete
+ETCDCTL_API=3 ./etcdctl del /cron/lock/ --prefix
+```
