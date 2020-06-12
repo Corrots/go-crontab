@@ -62,7 +62,7 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 
 	go func(e *JobExecution, job *model.Job) {
 		var res ExecRes
-		// @TODO 获取分布式锁
+		// 获取分布式锁
 		startTime := time.Now()
 		lock := JM.createLock(job.Name)
 		if err := lock.TryLock(); err != nil {
