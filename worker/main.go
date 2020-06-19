@@ -26,6 +26,7 @@ func main() {
 
 	manager.InitScheduler()
 	manager.JM.WatchJobs()
+	manager.JM.WatchKiller()
 
 	time.Sleep(time.Hour)
 }
