@@ -15,7 +15,9 @@ import (
 const (
 	PutEvent      = 1
 	DeleteEvent   = 2
+	KillEvent     = 3
 	JobNamePrefix = "/cron/jobs/"
+	JobKillPrefix = "/cron/killer/"
 )
 
 type JobEvent struct {
@@ -78,4 +80,25 @@ func (jm *JobManager) WatchJobs() error {
 		}
 	}()
 	return nil
+}
+
+// 监听killer(强杀任务)
+func (jm *JobManager) WatchKiller() {
+	go func() {
+		watchChan := jm.watcher.Watch(context.TODO(), JobKillPrefix, clientv3.WithPrefix())
+		for {
+			select {
+			case resp := <-watchChan:
+				for _, event := range resp.Events {
+					switch event.Type {
+					case PutEvent:
+						jobName := strings.TrimPrefix(string(event.Kv.Key), JobKillPrefix)
+						fmt.Printf("kill job name: %s\n", jobName)
+						je := JobEvent{Type: KillEvent, Job: model.Job{Name: jobName}}
+						Scheduler.pushEvent(je)
+					}
+				}
+			}
+		}
+	}()
 }

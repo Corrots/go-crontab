@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os/exec"
 	"time"
+
+	"github.com/corrots/go-crontab/worker/utils"
 
 	"github.com/corrots/go-crontab/common/model"
 	"github.com/gorhill/cronexpr"
@@ -27,9 +30,11 @@ type ExecRes struct {
 }
 
 type JobExecution struct {
-	Name     string
-	PlanTime time.Time
-	ExecTime time.Time
+	Name       string
+	PlanTime   time.Time
+	ExecTime   time.Time
+	CancelCtx  context.Context
+	CancelFunc context.CancelFunc
 }
 
 type JobPlan struct {
@@ -62,6 +67,8 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 
 	go func(e *JobExecution, job *model.Job) {
 		var res ExecRes
+		// 随机sleep, 打散任务
+		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 		// 获取分布式锁
 		startTime := time.Now()
 		lock := JM.createLock(job.Name)
@@ -74,8 +81,9 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 			}
 		} else {
 			startTime = time.Now()
-			cmd := exec.CommandContext(context.TODO(), "/bin/bash", "-c", job.Command)
+			cmd := exec.CommandContext(je.CancelCtx, "/bin/bash", "-c", job.Command)
 			output, err := cmd.CombinedOutput()
+			//fmt.Printf("cmd exec err: %v\n", err)
 			res = ExecRes{
 				Execution: e,
 				Output:    output,
@@ -94,10 +102,13 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 }
 
 func buildJobExecution(plan *JobPlan) *JobExecution {
+	ctx, cancelFunc := context.WithCancel(context.TODO())
 	return &JobExecution{
-		Name:     plan.Job.Name,
-		PlanTime: plan.NextTime,
-		ExecTime: time.Now(),
+		Name:       plan.Job.Name,
+		PlanTime:   plan.NextTime,
+		ExecTime:   time.Now(),
+		CancelCtx:  ctx,
+		CancelFunc: cancelFunc,
 	}
 }
 
@@ -111,6 +122,19 @@ func (s *JobScheduler) run() {
 		case <-timer.C:
 		case res := <-s.ResChan:
 			if res.Error != nil {
+				if res.Error != ErrorLockFailed {
+					jobLog := &utils.JobLog{
+						JobName:      res.Execution.Name,
+						Command:      nil,
+						Error:        "",
+						Output:       string(res.Output),
+						PlanTime:     0,
+						ScheduleTime: 0,
+						StartTime:    0,
+						EndTime:      0,
+					}
+				}
+
 				log.Printf("exec task {%s} err: %v\n", res.Execution.Name, res.Error)
 				// 此处不能return，出现异常时会导致任务中断
 				continue
@@ -158,6 +182,11 @@ func (s *JobScheduler) eventHandler(e JobEvent) {
 	case DeleteEvent:
 		if _, ok := s.Plans[e.Job.Name]; ok {
 			delete(s.Plans, e.Job.Name)
+		}
+	case KillEvent:
+		// 检查任务是否正在执行中
+		if je, ok := s.Executions[e.Job.Name]; ok {
+			je.CancelFunc()
 		}
 	}
 }

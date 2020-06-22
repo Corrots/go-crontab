@@ -2,7 +2,9 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 
 	"github.com/coreos/etcd/clientv3"
 )
@@ -10,6 +12,8 @@ import (
 const (
 	LockNamePrefix = "/cron/lock/"
 )
+
+var ErrorLockFailed = errors.New("抢锁失败")
 
 type Lock struct {
 	JobName    string
@@ -65,7 +69,8 @@ func (l *Lock) TryLock() error {
 		l.IsLocked = true
 		return nil
 	}
-	return fmt.Errorf("抢锁失败, %s\n", txnResp.Responses[0].GetResponseRange().Kvs[0].Key)
+	log.Printf("抢锁失败, %s\n", txnResp.Responses[0].GetResponseRange().Kvs[0].Key)
+	return ErrorLockFailed
 }
 
 func (l *Lock) Unlock() {
