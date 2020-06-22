@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/corrots/go-crontab/worker/utils"
+
 	"github.com/corrots/go-crontab/common/model"
 	"github.com/gorhill/cronexpr"
 )
@@ -120,6 +122,19 @@ func (s *JobScheduler) run() {
 		case <-timer.C:
 		case res := <-s.ResChan:
 			if res.Error != nil {
+				if res.Error != ErrorLockFailed {
+					jobLog := &utils.JobLog{
+						JobName:      res.Execution.Name,
+						Command:      nil,
+						Error:        "",
+						Output:       string(res.Output),
+						PlanTime:     0,
+						ScheduleTime: 0,
+						StartTime:    0,
+						EndTime:      0,
+					}
+				}
+
 				log.Printf("exec task {%s} err: %v\n", res.Execution.Name, res.Error)
 				// 此处不能return，出现异常时会导致任务中断
 				continue
