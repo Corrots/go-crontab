@@ -4,9 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/corrots/go-crontab/worker/etcd"
-
 	"github.com/corrots/go-crontab/common"
+	"github.com/corrots/go-crontab/worker/etcd"
 	flag "github.com/spf13/pflag"
 )
 
