@@ -27,9 +27,11 @@ type ExecRes struct {
 }
 
 type JobExecution struct {
-	Name     string
-	PlanTime time.Time
-	ExecTime time.Time
+	Name       string
+	PlanTime   time.Time
+	ExecTime   time.Time
+	CancelCtx  context.Context
+	CancelFunc context.CancelFunc
 }
 
 type JobPlan struct {
@@ -74,7 +76,7 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 			}
 		} else {
 			startTime = time.Now()
-			cmd := exec.CommandContext(context.TODO(), "/bin/bash", "-c", job.Command)
+			cmd := exec.CommandContext(je.CancelCtx, "/bin/bash", "-c", job.Command)
 			output, err := cmd.CombinedOutput()
 			res = ExecRes{
 				Execution: e,
@@ -94,10 +96,13 @@ func (s *JobScheduler) execute(plan *JobPlan) {
 }
 
 func buildJobExecution(plan *JobPlan) *JobExecution {
+	ctx, cancelFunc := context.WithCancel(context.TODO())
 	return &JobExecution{
-		Name:     plan.Job.Name,
-		PlanTime: plan.NextTime,
-		ExecTime: time.Now(),
+		Name:       plan.Job.Name,
+		PlanTime:   plan.NextTime,
+		ExecTime:   time.Now(),
+		CancelCtx:  ctx,
+		CancelFunc: cancelFunc,
 	}
 }
 
@@ -143,7 +148,7 @@ func (s *JobScheduler) tryScheduler() (after time.Duration) {
 		}
 	}
 	// 下次调度任务的时间间隔
-	return (*nearestTime).Sub(now)
+	return (nearestTime).Sub(now)
 }
 
 func (s *JobScheduler) eventHandler(e JobEvent) {
@@ -158,6 +163,11 @@ func (s *JobScheduler) eventHandler(e JobEvent) {
 	case DeleteEvent:
 		if _, ok := s.Plans[e.Job.Name]; ok {
 			delete(s.Plans, e.Job.Name)
+		}
+	case KillEvent:
+		if execution, ok := s.Executions[e.Job.Name]; ok {
+			// @TODO 通过 context cancel当前的任务
+			execution.CancelFunc()
 		}
 	}
 }

@@ -9,17 +9,18 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
+	"github.com/corrots/go-crontab/common"
 	"github.com/corrots/go-crontab/common/model"
 )
 
 const (
-	PutEvent      = 1
-	DeleteEvent   = 2
-	JobNamePrefix = "/cron/jobs/"
+	PutEvent    = 1
+	DeleteEvent = 2
+	KillEvent   = 3
 )
 
 type JobEvent struct {
-	// event type 1: PUT; 2: DELETE
+	// event type 1: PUT; 2: DELETE; 3: KILL
 	Type int
 	// event job info
 	Job model.Job
@@ -31,7 +32,7 @@ func (jm *JobManager) createLock(jobName string) *Lock {
 
 // 监听任务
 func (jm *JobManager) WatchJobs() error {
-	getResp, err := jm.kv.Get(context.TODO(), JobNamePrefix, clientv3.WithPrefix())
+	getResp, err := jm.kv.Get(context.TODO(), common.TaskNamePrefix, clientv3.WithPrefix())
 	if err != nil {
 		return fmt.Errorf("etcd get err: %v\n", err)
 	}
@@ -49,7 +50,7 @@ func (jm *JobManager) WatchJobs() error {
 	// goroutine监听job更新
 	go func() {
 		latestRevision := getResp.Header.Revision + 1
-		watchChan := jm.watcher.Watch(context.TODO(), JobNamePrefix, clientv3.WithRev(latestRevision), clientv3.WithPrefix())
+		watchChan := jm.watcher.Watch(context.TODO(), common.TaskNamePrefix, clientv3.WithRev(latestRevision), clientv3.WithPrefix())
 		for {
 			select {
 			case resp := <-watchChan:
@@ -67,7 +68,7 @@ func (jm *JobManager) WatchJobs() error {
 						jobEvent = JobEvent{Type: PutEvent, Job: job}
 					case mvccpb.DELETE:
 						//fmt.Printf("DELETE Revision: %d\n", e.Kv.ModRevision)
-						jobName := strings.TrimPrefix(string(e.Kv.Key), JobNamePrefix)
+						jobName := strings.TrimPrefix(string(e.Kv.Key), common.TaskNamePrefix)
 						// 构造删除event
 						jobEvent = JobEvent{Type: DeleteEvent, Job: model.Job{Name: jobName}}
 					}
@@ -78,4 +79,24 @@ func (jm *JobManager) WatchJobs() error {
 		}
 	}()
 	return nil
+}
+
+func (jm *JobManager) WatchKiller() {
+	go func() {
+		watchChan := jm.watcher.Watch(context.TODO(), common.TaskKillerPrefix, clientv3.WithPrefix())
+		for {
+			select {
+			case res := <-watchChan:
+				for _, event := range res.Events {
+					if event.Type == PutEvent {
+						je := JobEvent{
+							Type: KillEvent,
+							Job:  model.Job{Name: string(event.Kv.Key)},
+						}
+						Scheduler.pushEvent(je)
+					}
+				}
+			}
+		}
+	}()
 }

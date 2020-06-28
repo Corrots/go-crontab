@@ -7,12 +7,8 @@ import (
 	"fmt"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/corrots/go-crontab/common"
 	"github.com/corrots/go-crontab/common/model"
-)
-
-const (
-	JobNamePrefix   = "/cron/jobs/"
-	JobKillerPrefix = "/cron/killer/"
 )
 
 func (jm *JobManager) SaveJob(job *model.Job) (prevJob *model.Job, err error) {
@@ -46,7 +42,7 @@ func (jm *JobManager) GetJobByName(jobName string) (job *model.Job, err error) {
 }
 
 func (jm *JobManager) GetJobs() (jobs []model.Job, err error) {
-	getResp, err := jm.kv.Get(context.TODO(), JobNamePrefix, clientv3.WithPrefix())
+	getResp, err := jm.kv.Get(context.TODO(), common.TaskNamePrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, fmt.Errorf("etcd get err: %v\n", err)
 	}
@@ -78,7 +74,7 @@ func (jm *JobManager) DeleteJobs(jobName string) (prevJob *model.Job, err error)
 
 // 更新 key = /cron/killer/jobName
 func (jm *JobManager) JobKiller(jobName string) error {
-	key := JobKillerPrefix + jobName
+	key := common.TaskKillerPrefix + jobName
 	// 为key设置lease
 	ctx := context.Background()
 	lease, err := jm.lease.Grant(ctx, 1)
@@ -93,5 +89,5 @@ func (jm *JobManager) JobKiller(jobName string) error {
 }
 
 func getJobKey(jobName string) string {
-	return JobNamePrefix + jobName
+	return common.TaskNamePrefix + jobName
 }

@@ -39,3 +39,9 @@ ETCDCTL_API=3 ./etcdctl get /cron/lock/ --prefix
 # delete
 ETCDCTL_API=3 ./etcdctl del /cron/lock/ --prefix
 ```
+## worker flow
+1. 从etcd从取出task存入内存中
+2. 实现调度模块，基于cronexpr调度多个task
+3. 实现执行模块，并发的执行多个task
+4. 通过分布式锁来限制task在集群中的并发
+5. 将执行日志保存至mongodb

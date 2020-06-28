@@ -198,7 +198,7 @@
             $("#job-list").on("click", ".kill-job", function(event) {
                 var jobName = $(this).parents("tr").children(".job-name").text()
                 $.ajax({
-                    url: '/job/kill' + jobName,
+                    url: '/job/kill/' + jobName,
                     type: 'post',
                     dataType: 'json',
                     // data: {name: jobName},
