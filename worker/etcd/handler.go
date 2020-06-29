@@ -8,6 +8,7 @@ import (
 )
 
 func (s *Scheduler) EventHandler(e *Event) {
+	taskName := e.Task.Name
 	switch e.Type {
 	case EventPut:
 		expr, err := cronexpr.Parse(e.Task.Expression)
@@ -22,10 +23,13 @@ func (s *Scheduler) EventHandler(e *Event) {
 		}
 		//fmt.Printf("task: %+v\n", s.PlanTable[e.Task.Name].Task)
 	case EventDelete:
-		if _, ok := s.PlanTable[e.Task.Name]; ok {
-			delete(s.PlanTable, e.Task.Name)
+		if _, ok := s.PlanTable[taskName]; ok {
+			delete(s.PlanTable, taskName)
 		}
 	case EventKill:
 		// @TODO handle kill event
+		if exec, ok := s.ExecTable[taskName]; ok {
+			exec.CancelFunc()
+		}
 	}
 }

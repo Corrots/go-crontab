@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"context"
 	"time"
 
 	"github.com/gorhill/cronexpr"
@@ -22,10 +23,13 @@ type Exec struct {
 	TaskName   string
 	PlanTime   time.Time
 	ActualTime time.Time
+	Ctx        context.Context
+	CancelFunc context.CancelFunc
 }
 
 type Result struct {
 	TaskName  string
+	Command   string
 	Output    []byte
 	Err       error
 	StartTime time.Time

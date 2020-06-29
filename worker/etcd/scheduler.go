@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/corrots/go-crontab/worker/utils"
 )
 
 var (
@@ -43,8 +45,13 @@ func (s *Scheduler) Run() {
 			s.EventHandler(&e)
 		case <-timer.C:
 		case res := <-s.ResultChan:
-			if res.Err != nil {
-				fmt.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
+			//if res.Err != nil {
+			//	fmt.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
+			//	continue
+			//}
+			// 将res写入mongodb
+			if err := storeRes(&res); err != nil {
+				fmt.Println(err)
 				continue
 			}
 			spent := res.EndTime.Sub(res.StartTime).Milliseconds()
@@ -54,6 +61,27 @@ func (s *Scheduler) Run() {
 		interval = s.getInterval()
 		timer.Reset(interval)
 	}
+}
+
+func storeRes(res *Result) error {
+	mongo, err := utils.NewMongo()
+	if err != nil {
+		return fmt.Errorf("init mongo err: %v\n", err)
+	}
+	log := &utils.Log{
+		TaskName: res.TaskName,
+		//Command:  res.Output,
+		//Error:  res.Err.Error(),
+		Output: string(res.Output),
+		//PlanTime:     "",
+		//ScheduleTime: "0",
+		StartTime: res.StartTime.Format("2006-01-02 15:04:05"),
+		EndTime:   res.EndTime.Format("2006-01-02 15:04:05"),
+	}
+	if res.Err != nil {
+		log.Error = res.Err.Error()
+	}
+	return mongo.InsertLog(log)
 }
 
 func (s *Scheduler) getInterval() time.Duration {
@@ -83,23 +111,30 @@ func (s *Scheduler) execute(p *Plan) {
 		return
 	}
 
-	s.ExecTable[taskName] = buildTaskExec(p)
-	go func(name string, scheduler *Scheduler) {
+	taskExec := buildTaskExec(p)
+	s.ExecTable[taskName] = taskExec
+	go func(e *Exec, scheduler *Scheduler) {
 		// 分布式锁
 		lock, err := NewLock()
 		if err != nil {
 			fmt.Printf("new Lock err: %v\n", err)
 			return
 		}
-		if err := lock.Lock(name); err != nil {
-			fmt.Println(err)
+		start := time.Now()
+		if err := lock.Lock(taskExec.TaskName); err != nil {
+			scheduler.ResultChan <- Result{
+				TaskName:  taskExec.TaskName,
+				Err:       err,
+				StartTime: start,
+				EndTime:   time.Now(),
+			}
 			return
 		} else {
-			start := time.Now()
-			cmd := exec.CommandContext(context.TODO(), "/bin/bash", "-c", p.Task.Command)
+			start = time.Now()
+			cmd := exec.CommandContext(taskExec.Ctx, "/bin/bash", "-c", p.Task.Command)
 			output, err := cmd.CombinedOutput()
 			scheduler.ResultChan <- Result{
-				TaskName:  taskName,
+				TaskName:  taskExec.TaskName,
 				Output:    output,
 				Err:       err,
 				StartTime: start,
@@ -107,16 +142,20 @@ func (s *Scheduler) execute(p *Plan) {
 			}
 		}
 		defer lock.UnLock()
+		// 将执行完成的Task移除
 		scheduler.rwmutex.Lock()
-		delete(scheduler.ExecTable, taskName)
+		delete(scheduler.ExecTable, taskExec.TaskName)
 		scheduler.rwmutex.Unlock()
-	}(taskName, s)
+	}(taskExec, s)
 }
 
 func buildTaskExec(plan *Plan) *Exec {
+	ctx, cancelFunc := context.WithCancel(context.TODO())
 	return &Exec{
 		TaskName:   plan.Task.Name,
 		PlanTime:   plan.NextTime,
 		ActualTime: time.Now(),
+		Ctx:        ctx,
+		CancelFunc: cancelFunc,
 	}
 }
