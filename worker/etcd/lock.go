@@ -59,7 +59,7 @@ func (l *Lock) Lock(taskName string) error {
 	key := common.TaskLockPrefix + taskName
 	cmp := clientv3.Compare(clientv3.CreateRevision(key), "=", 0)
 	//fmt.Println("cmp: ", cmp.Result.String())
-	txn.If(cmp).Then(clientv3.OpPut(key, "abc", clientv3.WithLease(l.LeaseID))).Else(clientv3.OpGet(key))
+	txn.If(cmp).Then(clientv3.OpPut(key, "", clientv3.WithLease(l.LeaseID))).Else(clientv3.OpGet(key))
 	txnResp, err := txn.Commit()
 	if err != nil {
 		return fmt.Errorf("txn commit err: %v\n", err)

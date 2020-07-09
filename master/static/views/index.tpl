@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ .title }}</title>
+    <link rel="shortcut icon" href="https://img.icons8.com/plasticine/100/000000/download-2.png" type="image/x-icon" />
     <!-- bootstrap + jquery -->
 
     <!-- vuejs  , reactjs , angular -->
