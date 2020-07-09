@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"fmt"
+	"log"
 	"os/exec"
 	"sync"
 	"time"
@@ -46,7 +47,7 @@ func (s *Scheduler) Run() {
 		case <-timer.C:
 		case res := <-s.ResultChan:
 			if res.Err != nil {
-				fmt.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
+				log.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
 				continue
 			}
 			// 将res写入mongodb

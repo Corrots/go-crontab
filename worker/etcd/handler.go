@@ -24,7 +24,9 @@ func (s *Scheduler) EventHandler(e *Event) {
 		//fmt.Printf("task: %+v\n", s.PlanTable[e.Task.Name].Task)
 	case EventDelete:
 		if _, ok := s.PlanTable[taskName]; ok {
+			s.rwmutex.Lock()
 			delete(s.PlanTable, taskName)
+			s.rwmutex.Unlock()
 		}
 	case EventKill:
 		// @TODO handle kill event

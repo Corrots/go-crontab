@@ -60,7 +60,7 @@ func Delete(c *gin.Context) {
 		sendResponse(c, http.StatusBadRequest, &RespBadRequest)
 		return
 	}
-	prevJob, err := manager.JM.DeleteJobs(jobName)
+	prevJob, err := manager.JM.DeleteJob(jobName)
 	if err != nil {
 		log.Println(err)
 		sendResponse(c, http.StatusInternalServerError, &JobDeleteFailed)
