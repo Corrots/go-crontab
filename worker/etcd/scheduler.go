@@ -45,15 +45,15 @@ func (s *Scheduler) Run() {
 			s.EventHandler(&e)
 		case <-timer.C:
 		case res := <-s.ResultChan:
-			//if res.Err != nil {
-			//	fmt.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
-			//	continue
-			//}
-			// 将res写入mongodb
-			if err := storeRes(&res); err != nil {
-				fmt.Println(err)
+			if res.Err != nil {
+				fmt.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
 				continue
 			}
+			// 将res写入mongodb
+			//if err := storeRes(&res); err != nil {
+			//	fmt.Println(err)
+			//	continue
+			//}
 			spent := res.EndTime.Sub(res.StartTime).Milliseconds()
 			fmt.Printf("task {%v}, spent %v ms, output: %s\n", res.TaskName, spent, res.Output)
 		}
