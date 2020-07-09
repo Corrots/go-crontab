@@ -59,7 +59,7 @@ func (jm *JobManager) GetJobs() (jobs []model.Job, err error) {
 	return jobs, nil
 }
 
-func (jm *JobManager) DeleteJobs(jobName string) (prevJob *model.Job, err error) {
+func (jm *JobManager) DeleteJob(jobName string) (prevJob *model.Job, err error) {
 	key := getJobKey(jobName)
 	delResp, err := jm.kv.Delete(context.TODO(), key, clientv3.WithPrevKV())
 	if err != nil {
