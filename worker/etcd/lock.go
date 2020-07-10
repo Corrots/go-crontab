@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/coreos/etcd/clientv3"
@@ -16,6 +17,8 @@ type Lock struct {
 	CancelFunc context.CancelFunc
 	Locked     bool
 }
+
+var ErrorLockOccupied = errors.New("锁已被占用")
 
 func NewLock() (*Lock, error) {
 	c, err := newEtcd()
@@ -58,16 +61,15 @@ func (l *Lock) Lock(taskName string) error {
 	txn := l.KV.Txn(context.TODO())
 	key := common.TaskLockPrefix + taskName
 	cmp := clientv3.Compare(clientv3.CreateRevision(key), "=", 0)
-	//fmt.Println("cmp: ", cmp.Result.String())
 	txn.If(cmp).Then(clientv3.OpPut(key, "", clientv3.WithLease(l.LeaseID))).Else(clientv3.OpGet(key))
 	txnResp, err := txn.Commit()
 	if err != nil {
 		return fmt.Errorf("txn commit err: %v\n", err)
 	}
-	//fmt.Printf("txnResp: %+v\n", *txnResp.Responses[0].GetResponseRange().Kvs[0])
 	if !txnResp.Succeeded {
-		kv := txnResp.Responses[0].GetResponseRange().Kvs[0]
-		return fmt.Errorf("{%s}抢锁失败, {%s}占用中\n", kv.Key, kv.Value)
+		//kv := txnResp.Responses[0].GetResponseRange().Kvs[0]
+		//return fmt.Errorf("{%s}抢锁失败, {%s}占用中\n", kv.Key, kv.Value)
+		return ErrorLockOccupied
 	}
 	//fmt.Println("抢锁成功")
 	return nil

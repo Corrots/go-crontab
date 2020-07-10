@@ -38,7 +38,7 @@ type Mongo struct {
 }
 
 func NewMongo() (*Mongo, error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*time.Duration(viper.GetInt("mongo.timeout")))
 	uri := fmt.Sprintf("mongodb://%s", viper.GetString("mongo.addr"))
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
@@ -48,7 +48,7 @@ func NewMongo() (*Mongo, error) {
 		return nil, fmt.Errorf("Ping err: %v\n", err)
 	}
 
-	collection := client.Database("cron").Collection("log")
+	collection := client.Database(viper.GetString("mongo.database")).Collection(viper.GetString("mongo.collection"))
 	return &Mongo{
 		Ctx:        ctx,
 		Client:     client,

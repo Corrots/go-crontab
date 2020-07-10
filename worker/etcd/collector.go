@@ -29,14 +29,12 @@ func (w *Worker) CollectEvent() {
 		log.Printf("etcd get %s err: %v\n", common.TaskNamePrefix, err)
 		return
 	}
-	if len(getResp.Kvs) == 0 {
-		return
-	}
+	// 此处不能return,会导致下面监听task更新的协程无法开启
 	for _, v := range getResp.Kvs {
 		var task Task
 		if err := json.Unmarshal(v.Value, &task); err != nil {
 			log.Printf("unmarshal task json err: %v\n", err)
-			return
+			continue
 		}
 		w.Scheduler.PushEvent(Event{Type: EventPut, Task: &task})
 	}
