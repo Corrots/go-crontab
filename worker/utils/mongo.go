@@ -12,25 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type Log struct {
-	// 任务名称
-	TaskName string `bson:"task_name"`
-	// shell指令
-	Command string `bson:"command"`
-	// shell执行error
-	Error string `bson:"error"`
-	// shell执行stdout
-	Output string `bson:"output"`
-	// 计划开始时间
-	PlanTime string `bson:"plan_time"`
-	// 实际调度时间
-	ScheduleTime string `bson:"schedule_time"`
-	// 任务执行开始时间
-	StartTime string `bson:"start_time"`
-	// 任务执行结束时间
-	EndTime string `bson:"end_time"`
-}
-
 type Mongo struct {
 	Ctx        context.Context
 	Client     *mongo.Client
@@ -38,7 +19,7 @@ type Mongo struct {
 }
 
 func NewMongo() (*Mongo, error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*time.Duration(viper.GetInt("mongo.timeout")))
 	uri := fmt.Sprintf("mongodb://%s", viper.GetString("mongo.addr"))
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
@@ -48,7 +29,7 @@ func NewMongo() (*Mongo, error) {
 		return nil, fmt.Errorf("Ping err: %v\n", err)
 	}
 
-	collection := client.Database("cron").Collection("log")
+	collection := client.Database(viper.GetString("mongo.database")).Collection(viper.GetString("mongo.collection"))
 	return &Mongo{
 		Ctx:        ctx,
 		Client:     client,
@@ -56,8 +37,14 @@ func NewMongo() (*Mongo, error) {
 	}, nil
 }
 
-func (m *Mongo) InsertLog(log *Log) error {
-	_, err := m.Collection.InsertOne(m.Ctx, log)
-	defer m.Client.Disconnect(m.Ctx)
-	return err
-}
+//func (m *Mongo) InsertOne(log *core.Log) error {
+//	_, err := m.Collection.InsertOne(m.Ctx, log)
+//	defer m.Client.Disconnect(m.Ctx)
+//	return err
+//}
+//
+//func (m *Mongo) InsertMany(logs []interface{}) error {
+//	_, err := m.Collection.InsertMany(m.Ctx, logs)
+//	defer m.Client.Disconnect(m.Ctx)
+//	return err
+//}

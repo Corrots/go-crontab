@@ -1,4 +1,4 @@
-package etcd
+package core
 
 import (
 	"fmt"
@@ -21,7 +21,6 @@ func (s *Scheduler) EventHandler(e *Event) {
 			Expr:     expr,
 			NextTime: expr.Next(time.Now()),
 		}
-		//fmt.Printf("task: %+v\n", s.PlanTable[e.Task.Name].Task)
 	case EventDelete:
 		if _, ok := s.PlanTable[taskName]; ok {
 			s.rwmutex.Lock()
@@ -34,4 +33,18 @@ func (s *Scheduler) EventHandler(e *Event) {
 			exec.CancelFunc()
 		}
 	}
+}
+
+func (s *Scheduler) ResultHandler(res *Result) {
+	log := &Log{
+		TaskName:  res.TaskName,
+		Command:   res.Command,
+		Output:    string(res.Output),
+		StartTime: res.StartTime.Format("2006-01-02 15:04:05"),
+		EndTime:   res.EndTime.Format("2006-01-02 15:04:05"),
+	}
+	if res.Err != nil {
+		log.Error = res.Err.Error()
+	}
+	s.LogSink.LogsChan <- log
 }
