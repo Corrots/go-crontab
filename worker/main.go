@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/corrots/go-crontab/common"
-	"github.com/corrots/go-crontab/worker/etcd"
+	"github.com/corrots/go-crontab/worker/core"
 	flag "github.com/spf13/pflag"
 )
 
@@ -20,12 +20,13 @@ func main() {
 		return
 	}
 
-	client, err := etcd.NewWorker()
+	client, err := core.NewWorker()
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	client.CollectEvent()
 	client.Scheduler.Run()
+	go client.Scheduler.LogsConsume()
 	time.Sleep(time.Minute * 5)
 }

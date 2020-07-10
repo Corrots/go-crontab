@@ -1,14 +1,13 @@
-package etcd
+package core
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"os/exec"
 	"sync"
 	"time"
-
-	"github.com/corrots/go-crontab/worker/utils"
 )
 
 var (
@@ -20,6 +19,7 @@ type Scheduler struct {
 	PlanTable  map[string]*Plan
 	ExecTable  map[string]*Exec
 	ResultChan chan Result
+	LogSink    *LogSink
 	rwmutex    sync.RWMutex
 }
 
@@ -29,12 +29,22 @@ func NewScheduler() Scheduler {
 		PlanTable:  make(map[string]*Plan),
 		ExecTable:  make(map[string]*Exec),
 		ResultChan: make(chan Result, 1000),
+		LogSink:    newLogSink(),
 		rwmutex:    sync.RWMutex{},
 	}
 }
 
 func (s *Scheduler) PushEvent(e Event) {
 	s.EventChan <- e
+}
+
+func (s *Scheduler) LogsConsume() {
+	for {
+		select {
+		case l := <-s.LogSink.LogsChan:
+
+		}
+	}
 }
 
 func (s *Scheduler) Run() {
@@ -46,42 +56,16 @@ func (s *Scheduler) Run() {
 			s.EventHandler(&e)
 		case <-timer.C:
 		case res := <-s.ResultChan:
-			if res.Err != nil && res.Err != ErrorLockOccupied {
-				//log.Printf("exec task {%s} err: %v\n", res.TaskName, res.Err)
-				// 将res写入mongodb
-				if err := storeRes(&res); err != nil {
-					fmt.Println(err)
-					continue
-				}
+			if res.Err != ErrorLockOccupied {
+				s.ResultHandler(&res)
+				spent := res.EndTime.Sub(res.StartTime).Milliseconds()
+				fmt.Printf("task {%v}, spent %v ms, output: %s\n", res.TaskName, spent, res.Output)
 			}
-			spent := res.EndTime.Sub(res.StartTime).Milliseconds()
-			fmt.Printf("task {%v}, spent %v ms, output: %s\n", res.TaskName, spent, res.Output)
 		}
 		// 重新获取下次任务的间隔时间，并重置timer
 		interval = s.getInterval()
 		timer.Reset(interval)
 	}
-}
-
-// Store execution logs into mongo
-func storeRes(res *Result) error {
-	mongo, err := utils.NewMongo()
-	if err != nil {
-		return fmt.Errorf("init mongo err: %v\n", err)
-	}
-	input := &utils.Log{
-		TaskName: res.TaskName,
-		Command:  res.Command,
-		Output:   string(res.Output),
-		//PlanTime:     "",
-		//ScheduleTime: "0",
-		StartTime: res.StartTime.Format("2006-01-02 15:04:05"),
-		EndTime:   res.EndTime.Format("2006-01-02 15:04:05"),
-	}
-	if res.Err != nil {
-		input.Error = res.Err.Error()
-	}
-	return mongo.InsertLog(input)
 }
 
 func (s *Scheduler) getInterval() time.Duration {
@@ -119,7 +103,7 @@ func (s *Scheduler) execute(p *Plan) {
 		// 分布式锁
 		lock, err := NewLock()
 		if err != nil {
-			fmt.Printf("new Lock err: %v\n", err)
+			log.Printf("new Lock err: %v\n", err)
 			return
 		}
 		start := time.Now()
