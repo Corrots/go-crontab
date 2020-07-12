@@ -1,5 +1,9 @@
 package core
 
+import (
+	"log"
+)
+
 type Log struct {
 	// 任务名称
 	TaskName string `bson:"task_name"`
@@ -19,29 +23,56 @@ type Log struct {
 	EndTime string `bson:"end_time"`
 }
 
-type LogBash struct {
+type LogBatch struct {
 	Logs []interface{}
 }
 
-type LogSink struct {
-	//AutoCommitChan chan LogBash
-	LogsChan chan *Log
-	Stack    []interface{}
-	Limiter  int
+type LogProcessor struct {
+	mongo   *Mongo
+	logChan chan *Log
+	lbChan  chan *LogBatch
+	limiter int
 }
 
-func newLogSink() *LogSink {
-	return &LogSink{
-		LogsChan: make(chan *Log, 1000),
-		Limiter:  100,
+func NewLogProcessor() *LogProcessor {
+	mongo, err := NewMongo()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &LogProcessor{
+		mongo:   mongo,
+		logChan: make(chan *Log, 1000),
+		limiter: 2,
 	}
 }
 
-func (ls *LogSink) Consume() {
+func (lp *LogProcessor) Consumer() {
+	var batch *LogBatch
 	for {
 		select {
-		case log := <-ls.LogChan:
-
+		case l := <-lp.logChan:
+			if batch == nil {
+				batch = &LogBatch{}
+			}
+			batch.Logs = append(batch.Logs, l)
+			//fmt.Println("log length: ", len(batch.Logs))
+			if len(batch.Logs) >= lp.limiter {
+				go func(logs []interface{}) {
+					err := lp.mongo.InsertMany(logs)
+					if err != nil {
+						log.Printf("mongo insert logs err: %v\n", err)
+					}
+				}(batch.Logs)
+				// 写入完成后清空bash中的logs
+				batch.Logs = nil
+			}
 		}
+	}
+}
+
+func (lp *LogProcessor) append(l *Log) {
+	select {
+	case lp.logChan <- l:
+	default:
 	}
 }

@@ -14,7 +14,7 @@ type Worker struct {
 	KV        clientv3.KV
 	Lease     clientv3.Lease
 	Watcher   clientv3.Watcher
-	Scheduler Scheduler
+	Scheduler *Scheduler
 }
 
 func newEtcd() (*clientv3.Client, error) {

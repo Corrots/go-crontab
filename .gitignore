@@ -16,3 +16,4 @@
 /test/
 /conf.yaml
 .idea/
+.DS_Store

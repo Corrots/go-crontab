@@ -1,9 +1,8 @@
-package utils
+package core
 
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/spf13/viper"
 
@@ -13,13 +12,12 @@ import (
 )
 
 type Mongo struct {
-	Ctx        context.Context
 	Client     *mongo.Client
 	Collection *mongo.Collection
 }
 
 func NewMongo() (*Mongo, error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*time.Duration(viper.GetInt("mongo.timeout")))
+	ctx := context.Background()
 	uri := fmt.Sprintf("mongodb://%s", viper.GetString("mongo.addr"))
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
@@ -31,20 +29,18 @@ func NewMongo() (*Mongo, error) {
 
 	collection := client.Database(viper.GetString("mongo.database")).Collection(viper.GetString("mongo.collection"))
 	return &Mongo{
-		Ctx:        ctx,
 		Client:     client,
 		Collection: collection,
 	}, nil
 }
 
-//func (m *Mongo) InsertOne(log *core.Log) error {
-//	_, err := m.Collection.InsertOne(m.Ctx, log)
-//	defer m.Client.Disconnect(m.Ctx)
-//	return err
-//}
-//
-//func (m *Mongo) InsertMany(logs []interface{}) error {
-//	_, err := m.Collection.InsertMany(m.Ctx, logs)
-//	defer m.Client.Disconnect(m.Ctx)
-//	return err
-//}
+func getContext() context.Context {
+	return context.Background()
+}
+
+func (m *Mongo) InsertMany(logs []interface{}) error {
+	cxt := getContext()
+	_, err := m.Collection.InsertMany(cxt, logs)
+	//defer m.Client.Disconnect(cxt)
+	return err
+}
