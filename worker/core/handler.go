@@ -7,7 +7,7 @@ import (
 	"github.com/gorhill/cronexpr"
 )
 
-func (s *Scheduler) EventHandler(e *Event) {
+func (s *Scheduler) eventHandler(e *Event) {
 	taskName := e.Task.Name
 	switch e.Type {
 	case EventPut:
@@ -28,15 +28,15 @@ func (s *Scheduler) EventHandler(e *Event) {
 			s.rwmutex.Unlock()
 		}
 	case EventKill:
-		// @TODO handle kill event
+		// handle kill event
 		if exec, ok := s.ExecTable[taskName]; ok {
 			exec.CancelFunc()
 		}
 	}
 }
 
-func (s *Scheduler) ResultHandler(res *Result) {
-	log := &Log{
+func (s *Scheduler) resultHandler(res *Result) {
+	l := &Log{
 		TaskName:  res.TaskName,
 		Command:   res.Command,
 		Output:    string(res.Output),
@@ -44,7 +44,7 @@ func (s *Scheduler) ResultHandler(res *Result) {
 		EndTime:   res.EndTime.Format("2006-01-02 15:04:05"),
 	}
 	if res.Err != nil {
-		log.Error = res.Err.Error()
+		l.Error = res.Err.Error()
 	}
-	s.LogSink.LogsChan <- log
+	s.LogProcessor.append(l)
 }

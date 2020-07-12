@@ -20,13 +20,12 @@ func main() {
 		return
 	}
 
-	client, err := core.NewWorker()
+	worker, err := core.NewWorker()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client.CollectEvent()
-	client.Scheduler.Run()
-	go client.Scheduler.LogsConsume()
+	worker.CollectEvent()
+	worker.Scheduler.Run()
 	time.Sleep(time.Minute * 5)
 }
