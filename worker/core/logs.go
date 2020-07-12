@@ -2,6 +2,7 @@ package core
 
 import (
 	"log"
+	"time"
 )
 
 type Log struct {
@@ -28,10 +29,10 @@ type LogBatch struct {
 }
 
 type LogProcessor struct {
-	mongo   *Mongo
-	logChan chan *Log
-	lbChan  chan *LogBatch
-	limiter int
+	mongo      *Mongo
+	logChan    chan *Log
+	logBatches chan *LogBatch
+	limiter    int
 }
 
 func NewLogProcessor() *LogProcessor {
@@ -40,22 +41,28 @@ func NewLogProcessor() *LogProcessor {
 		log.Fatal(err)
 	}
 	return &LogProcessor{
-		mongo:   mongo,
-		logChan: make(chan *Log, 1000),
-		limiter: 2,
+		mongo:      mongo,
+		logChan:    make(chan *Log, 1000),
+		logBatches: make(chan *LogBatch, 1000),
+		limiter:    2,
 	}
 }
 
 func (lp *LogProcessor) Consumer() {
 	var batch *LogBatch
+	var timer *time.Timer
 	for {
 		select {
 		case l := <-lp.logChan:
 			if batch == nil {
 				batch = &LogBatch{}
+				timer = time.AfterFunc(time.Second*5, func(batch *LogBatch) func() {
+					return func() {
+						lp.logBatches <- batch
+					}
+				}(batch))
 			}
 			batch.Logs = append(batch.Logs, l)
-			//fmt.Println("log length: ", len(batch.Logs))
 			if len(batch.Logs) >= lp.limiter {
 				go func(logs []interface{}) {
 					err := lp.mongo.InsertMany(logs)
@@ -65,7 +72,19 @@ func (lp *LogProcessor) Consumer() {
 				}(batch.Logs)
 				// 写入完成后清空bash中的logs
 				batch.Logs = nil
+				timer.Stop()
 			}
+		case timeoutBatch := <-lp.logBatches:
+			if timeoutBatch != batch {
+				continue
+			}
+			go func(logs []interface{}) {
+				err := lp.mongo.InsertMany(logs)
+				if err != nil {
+					log.Printf("mongo insert logs err: %v\n", err)
+				}
+			}(timeoutBatch.Logs)
+			batch.Logs = nil
 		}
 	}
 }

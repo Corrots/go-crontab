@@ -40,8 +40,8 @@ func (s *Scheduler) resultHandler(res *Result) {
 		TaskName:  res.TaskName,
 		Command:   res.Command,
 		Output:    string(res.Output),
-		StartTime: res.StartTime.Format("2006-01-02 15:04:05"),
-		EndTime:   res.EndTime.Format("2006-01-02 15:04:05"),
+		StartTime: string(res.StartTime.UnixNano() / 1000 / 1000),
+		EndTime:   string(res.EndTime.UnixNano() / 1000 / 1000),
 	}
 	if res.Err != nil {
 		l.Error = res.Err.Error()
