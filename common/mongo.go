@@ -1,4 +1,4 @@
-package core
+package common
 
 import (
 	"context"
@@ -38,9 +38,39 @@ func getContext() context.Context {
 	return context.Background()
 }
 
-func (m *Mongo) InsertMany(logs []interface{}) error {
-	cxt := getContext()
-	_, err := m.Collection.InsertMany(cxt, logs)
+func (m *Mongo) InsertLogs(logs []interface{}) error {
+	_, err := m.Collection.InsertMany(context.TODO(), logs)
 	//defer m.Client.Disconnect(cxt)
 	return err
+}
+
+type NameFilter struct {
+	TaskName string `bson:"taskname"`
+}
+
+type LogSort struct {
+	Sort int `bson:"starttime"`
+}
+
+func (m *Mongo) GetLogs(taskName string, skip, limit int64) ([]Log, error) {
+	ctx := getContext()
+	var ops options.FindOptions
+	sort := LogSort{Sort: -1}
+	cursor, err := m.Collection.Find(ctx, NameFilter{TaskName: taskName}, ops.SetSkip(skip).SetLimit(limit).SetSort(sort))
+	if err != nil {
+		return nil, err
+	}
+	var rows []Log
+	for cursor.Next(ctx) {
+		var row Log
+		if err := cursor.Decode(&row); err != nil {
+			return nil, fmt.Errorf("cursor log decode err: %v\n", err)
+		}
+		rows = append(rows, row)
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("no logs found")
+	}
+	defer cursor.Close(ctx)
+	return rows, nil
 }

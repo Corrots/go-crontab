@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/corrots/go-crontab/common/model"
-	"github.com/corrots/go-crontab/master/manager"
+	"github.com/corrots/go-crontab/web/core"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,7 +20,7 @@ func Save(c *gin.Context) {
 		sendResponse(c, http.StatusBadRequest, &RespBadRequest)
 		return
 	}
-	prevJob, err := manager.JM.SaveJob(&job)
+	prevJob, err := core.JM.SaveJob(&job)
 	if err != nil {
 		log.Println(err)
 		sendResponse(c, http.StatusInternalServerError, &JobSaveFailed)
@@ -30,7 +30,7 @@ func Save(c *gin.Context) {
 }
 
 func List(c *gin.Context) {
-	jobs, err := manager.JM.GetJobs()
+	jobs, err := core.JM.GetJobs()
 	if err != nil {
 		log.Println(err)
 		sendResponse(c, http.StatusInternalServerError, &JobListFailed)
@@ -45,7 +45,7 @@ func Load(c *gin.Context) {
 		sendResponse(c, http.StatusBadRequest, &RespBadRequest)
 		return
 	}
-	job, err := manager.JM.GetJobByName(jobName)
+	job, err := core.JM.GetJobByName(jobName)
 	if err != nil {
 		log.Println(err)
 		sendResponse(c, http.StatusInternalServerError, &JobLoadFailed)
@@ -60,7 +60,7 @@ func Delete(c *gin.Context) {
 		sendResponse(c, http.StatusBadRequest, &RespBadRequest)
 		return
 	}
-	prevJob, err := manager.JM.DeleteJob(jobName)
+	prevJob, err := core.JM.DeleteJob(jobName)
 	if err != nil {
 		log.Println(err)
 		sendResponse(c, http.StatusInternalServerError, &JobDeleteFailed)
@@ -75,9 +75,24 @@ func Kill(c *gin.Context) {
 		sendResponse(c, http.StatusBadRequest, &RespBadRequest)
 		return
 	}
-	if err := manager.JM.JobKiller(jobName); err != nil {
+	if err := core.JM.JobKiller(jobName); err != nil {
 		sendResponse(c, http.StatusInternalServerError, &JobKillFailed)
 		return
 	}
 	sendOK(c, nil)
+}
+
+func LogList(c *gin.Context) {
+	jobName := c.Param("jobName")
+	if jobName == "" {
+		sendResponse(c, http.StatusBadRequest, &RespBadRequest)
+		return
+	}
+	skip, limit := int64(0), int64(20)
+	logs, err := core.GetLogList(jobName, skip, limit)
+	if err != nil {
+		sendResponse(c, http.StatusInternalServerError, &LogListFailed)
+		return
+	}
+	sendOK(c, logs)
 }

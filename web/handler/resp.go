@@ -18,6 +18,7 @@ var JobLoadFailed = Response{Code: "10003", Message: "cron job load failed"}
 var JobListFailed = Response{Code: "10004", Message: "get jobs list failed"}
 var JobDeleteFailed = Response{Code: "10005", Message: "cron job delete failed"}
 var JobKillFailed = Response{Code: "10006", Message: "kill cron job failed"}
+var LogListFailed = Response{Code: "10007", Message: "get log list failed"}
 
 func sendResponse(c *gin.Context, statusCode int, resp *Response) {
 	c.JSON(statusCode, gin.H{
