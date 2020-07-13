@@ -8,8 +8,8 @@ import (
 	"runtime"
 
 	"github.com/corrots/go-crontab/common"
-	"github.com/corrots/go-crontab/master/handler"
-	"github.com/corrots/go-crontab/master/manager"
+	"github.com/corrots/go-crontab/web/core"
+	"github.com/corrots/go-crontab/web/handler"
 	"github.com/gin-gonic/gin"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -32,7 +32,7 @@ func main() {
 		gin.DefaultWriter = io.MultiWriter(os.Stdout)
 	}
 
-	if err := manager.InitJobManager(); err != nil {
+	if err := core.InitJobManager(); err != nil {
 		log.Printf("init job manager err: %v\n", err)
 		return
 	}
@@ -40,7 +40,8 @@ func main() {
 	r := gin.Default()
 	index := r.Group("/index")
 	{
-		r.LoadHTMLGlob("master/static/views/*")
+		//r.LoadHTMLGlob("master/static/views/*")
+		r.LoadHTMLFiles("web/static/views/index.tpl")
 		index.GET("/", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "index.tpl", gin.H{
 				"title": "Cron Job Management",
@@ -56,6 +57,12 @@ func main() {
 		job.DELETE("/:jobName", handler.Delete)
 		job.POST("/kill/:jobName", handler.Kill)
 	}
+
+	logRouter := r.Group("/log")
+	{
+		logRouter.GET("/:jobName", handler.LogList)
+	}
+
 	r.Run(viper.GetString("api.port"))
 }
 

@@ -37,14 +37,20 @@ func (s *Scheduler) eventHandler(e *Event) {
 
 func (s *Scheduler) resultHandler(res *Result) {
 	l := &Log{
-		TaskName:  res.TaskName,
-		Command:   res.Command,
-		Output:    string(res.Output),
-		StartTime: string(res.StartTime.UnixNano() / 1000 / 1000),
-		EndTime:   string(res.EndTime.UnixNano() / 1000 / 1000),
+		TaskName:     res.TaskName,
+		Command:      res.Command,
+		Output:       string(res.Output),
+		PlanTime:     getTimestamp(res.Exec.PlanTime),
+		ScheduleTime: getTimestamp(res.Exec.ActualTime),
+		StartTime:    getTimestamp(res.StartTime),
+		EndTime:      getTimestamp(res.EndTime),
 	}
 	if res.Err != nil {
 		l.Error = res.Err.Error()
 	}
 	s.LogProcessor.append(l)
+}
+
+func getTimestamp(t time.Time) int64 {
+	return t.UnixNano() / 1000 / 1000
 }

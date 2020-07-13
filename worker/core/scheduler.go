@@ -99,6 +99,7 @@ func (s *Scheduler) execute(p *Plan) {
 		if err := lock.Lock(taskExec.TaskName); err != nil {
 			scheduler.ResultChan <- Result{
 				TaskName:  taskExec.TaskName,
+				Exec:      e,
 				Err:       err,
 				StartTime: start,
 				EndTime:   time.Now(),
@@ -110,6 +111,7 @@ func (s *Scheduler) execute(p *Plan) {
 			output, err := cmd.CombinedOutput()
 			scheduler.ResultChan <- Result{
 				TaskName:  taskExec.TaskName,
+				Exec:      e,
 				Command:   p.Task.Command,
 				Output:    output,
 				Err:       err,

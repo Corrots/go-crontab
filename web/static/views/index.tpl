@@ -102,7 +102,7 @@
                         <th>脚本输出</th>
                         <th>计划开始时间</th>
                         <th>实际调度时间</th>
-                        <th>开始执行时间</th>
+                        <th>执行开始时间</th>
                         <th>执行结束时间</th>
                     </tr>
                     </thead>
@@ -169,6 +169,7 @@
                 var millsecond = paddingNum(date.getMilliseconds(), 3)
                 return year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second + "." + millsecond
             }
+            console.log("time: ",timeFormat(1594621008330))
 
             // 1, 绑定按钮的事件处理函数
             // 用javascript委托机制, DOM事件冒泡的一个关键原理
@@ -239,9 +240,9 @@
 
                 // 请求/job/log接口
                 $.ajax({
-                    url: "/job/log",
+                    url: "/log/" + jobName,
                     dataType: 'json',
-                    data: {name: jobName},
+                    // data: {name: jobName},
                     success: function(resp) {
                         if (resp.code != "00") {
                             return
@@ -252,13 +253,13 @@
                             var log = logList[i]
                             var tr = $('<tr>')
                             tr.append($('<td>').html(log.command))
-                            tr.append($('<td>').html(log.err))
+                            tr.append($('<td>').html(log.error))
                             tr.append($('<td>').html(log.output))
-                            tr.append($('<td>').html(timeFormat(log.planTime)))
-                            tr.append($('<td>').html(timeFormat(log.scheduleTime)))
-                            tr.append($('<td>').html(timeFormat(log.startTime)))
-                            tr.append($('<td>').html(timeFormat(log.endTime)))
-                            console.log(tr)
+                            tr.append($('<td>').html(timeFormat(log.plan_time)))
+                            tr.append($('<td>').html(timeFormat(log.schedule_time)))
+                            tr.append($('<td>').html(timeFormat(log.start_time)))
+                            tr.append($('<td>').html(timeFormat(log.end_time)))
+                            //console.log(tr)
                             $('#log-list tbody').append(tr)
                         }
                     }

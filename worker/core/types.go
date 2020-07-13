@@ -29,6 +29,7 @@ type Exec struct {
 
 type Result struct {
 	TaskName  string
+	Exec      *Exec
 	Command   string
 	Output    []byte
 	Err       error
