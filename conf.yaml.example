@@ -8,6 +8,10 @@ api:
 
 etcd:
   endpoints: "http://192.168.56.23:2379"
+  dialTimeout: 5000
 
-mongodb:
+mongo:
   addr: "192.168.56.23:27017"
+  timeout: 5
+  database: "cron"
+  collection: "log"
