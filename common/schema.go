@@ -4,6 +4,7 @@ const (
 	TaskNamePrefix   = "/cron/jobs/"
 	TaskKillerPrefix = "/cron/killer/"
 	TaskLockPrefix   = "/cron/lock1/"
+	WorkerListPrefix = "/cron/worker/"
 )
 
 type Log struct {

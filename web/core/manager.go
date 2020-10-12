@@ -11,13 +11,13 @@ import (
 	"github.com/corrots/go-crontab/common/model"
 )
 
-func (jm *JobManager) SaveJob(job *model.Job) (prevJob *model.Job, err error) {
+func (m *Manager) SaveJob(job *model.Job) (prevJob *model.Job, err error) {
 	key := getJobKey(job.Name)
 	val, err := json.Marshal(job)
 	if err != nil {
 		return nil, fmt.Errorf("marshal job data err: %v\n", err)
 	}
-	putResp, err := jm.kv.Put(context.TODO(), key, string(val), clientv3.WithPrevKV())
+	putResp, err := m.kv.Put(context.TODO(), key, string(val), clientv3.WithPrevKV())
 	if err != nil || putResp.Header.Revision == 0 {
 		return nil, fmt.Errorf("etcd put err: %v\n", err)
 	}
@@ -29,9 +29,9 @@ func (jm *JobManager) SaveJob(job *model.Job) (prevJob *model.Job, err error) {
 	return
 }
 
-func (jm *JobManager) GetJobByName(jobName string) (job *model.Job, err error) {
+func (m *Manager) GetJobByName(jobName string) (job *model.Job, err error) {
 	key := getJobKey(jobName)
-	getResp, err := jm.kv.Get(context.TODO(), key)
+	getResp, err := m.kv.Get(context.TODO(), key)
 	if err != nil || getResp.Count == 0 {
 		return nil, fmt.Errorf("etcd get err: %v\n", err)
 	}
@@ -41,8 +41,8 @@ func (jm *JobManager) GetJobByName(jobName string) (job *model.Job, err error) {
 	return job, nil
 }
 
-func (jm *JobManager) GetJobs() (jobs []model.Job, err error) {
-	getResp, err := jm.kv.Get(context.TODO(), common.TaskNamePrefix, clientv3.WithPrefix())
+func (m *Manager) GetJobs() (jobs []model.Job, err error) {
+	getResp, err := m.kv.Get(context.TODO(), common.TaskNamePrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, fmt.Errorf("etcd get err: %v\n", err)
 	}
@@ -59,9 +59,9 @@ func (jm *JobManager) GetJobs() (jobs []model.Job, err error) {
 	return jobs, nil
 }
 
-func (jm *JobManager) DeleteJob(jobName string) (prevJob *model.Job, err error) {
+func (m *Manager) DeleteJob(jobName string) (prevJob *model.Job, err error) {
 	key := getJobKey(jobName)
-	delResp, err := jm.kv.Delete(context.TODO(), key, clientv3.WithPrevKV())
+	delResp, err := m.kv.Delete(context.TODO(), key, clientv3.WithPrevKV())
 	if err != nil {
 		return nil, fmt.Errorf("etcd delete err: %v\n", err)
 	}
@@ -73,15 +73,15 @@ func (jm *JobManager) DeleteJob(jobName string) (prevJob *model.Job, err error) 
 }
 
 // 更新 key = /cron/killer/jobName
-func (jm *JobManager) JobKiller(jobName string) error {
+func (m *Manager) JobKiller(jobName string) error {
 	key := common.TaskKillerPrefix + jobName
 	// 为key设置lease
 	ctx := context.Background()
-	lease, err := jm.lease.Grant(ctx, 1)
+	lease, err := m.lease.Grant(ctx, 1)
 	if err != nil {
 		return fmt.Errorf("lease grant err: %v\n", err)
 	}
-	_, err = jm.kv.Put(ctx, key, "", clientv3.WithLease(lease.ID))
+	_, err = m.kv.Put(ctx, key, "", clientv3.WithLease(lease.ID))
 	if err != nil {
 		return fmt.Errorf("etcd put err: %v\n", err)
 	}

@@ -63,6 +63,11 @@ func main() {
 		logRouter.GET("/:jobName", handler.LogList)
 	}
 
+	worker := r.Group("/worker")
+	{
+		worker.GET("/list", handler.WorkerList)
+	}
+
 	r.Run(viper.GetString("api.port"))
 }
 
