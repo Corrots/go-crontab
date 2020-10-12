@@ -40,8 +40,9 @@ func main() {
 	r := gin.Default()
 	index := r.Group("/index")
 	{
+		filename := viper.GetString("web.filename")
 		//r.LoadHTMLGlob("master/static/views/*")
-		r.LoadHTMLFiles("web/static/views/index.tpl")
+		r.LoadHTMLFiles(filename)
 		index.GET("/", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "index.tpl", gin.H{
 				"title": "Cron Job Management",
@@ -68,7 +69,7 @@ func main() {
 		worker.GET("/list", handler.WorkerList)
 	}
 
-	r.Run(viper.GetString("api.port"))
+	r.Run(viper.GetString("web.port"))
 }
 
 func initSystem() {
