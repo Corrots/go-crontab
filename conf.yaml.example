@@ -1,17 +1,19 @@
 app:
   debug: true
 
-api:
+
+web:
   port: ":8070"
   readTimeout: 5000
   writeTimeout: 5000
+  staticFilename: "/home/dev/crontab/web/static/views/index.tpl"
 
 etcd:
   endpoints: "http://192.168.56.25:2379"
   dialTimeout: 5000
 
 worker:
-  serverID: "12345"
+  serverIP: "123456"
 
 mongo:
   addr: "192.168.56.25:27017"
