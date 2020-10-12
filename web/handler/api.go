@@ -33,7 +33,7 @@ func List(c *gin.Context) {
 	jobs, err := core.JM.GetJobs()
 	if err != nil {
 		log.Println(err)
-		sendResponse(c, http.StatusInternalServerError, &JobListFailed)
+		sendResponse(c, http.StatusOK, &JobListEmpty)
 		return
 	}
 	sendOK(c, jobs)
@@ -95,4 +95,12 @@ func LogList(c *gin.Context) {
 		return
 	}
 	sendOK(c, logs)
+}
+
+func WorkerList(c *gin.Context) {
+	workers, err := core.JM.GetWorkerList()
+	if err != nil {
+		sendResponse(c, http.StatusInternalServerError, &WorkerListFailed)
+	}
+	sendOK(c, workers)
 }

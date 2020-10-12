@@ -7,11 +7,14 @@ api:
   writeTimeout: 5000
 
 etcd:
-  endpoints: "http://192.168.56.23:2379"
+  endpoints: "http://192.168.56.25:2379"
   dialTimeout: 5000
 
+worker:
+  serverID: "12345"
+
 mongo:
-  addr: "192.168.56.23:27017"
+  addr: "192.168.56.25:27017"
   timeout: 5
   database: "cron"
   collection: "log"

@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	JM *JobManager
+	JM *Manager
 )
 
-type JobManager struct {
+type Manager struct {
 	client *clientv3.Client
 	kv     clientv3.KV
 	lease  clientv3.Lease
@@ -30,7 +30,7 @@ func InitJobManager() error {
 		return fmt.Errorf("new etcd client err: %v\n", err)
 	}
 
-	JM = &JobManager{
+	JM = &Manager{
 		client: client,
 		kv:     clientv3.NewKV(client),
 		lease:  clientv3.NewLease(client),
