@@ -40,8 +40,8 @@ func main() {
 	r := gin.Default()
 	index := r.Group("/index")
 	{
-		r.LoadHTMLGlob("static/views/*")
-		//r.LoadHTMLFiles("static/views/index.html")
+		//r.LoadHTMLGlob("static/views/*")
+		r.LoadHTMLFiles("static/views/index.html")
 		index.GET("/", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "index.html", gin.H{
 				"title": "Cron Job Management",
