@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	conf = flag.String("c", "./conf.yaml", "specific the service config file")
+	conf         = flag.String("c", "./conf.yaml", "specific the service config file")
+	templatePath = flag.String("t", "static/views/index.html", "template folder path")
 )
 
 func main() {
@@ -41,7 +42,7 @@ func main() {
 	index := r.Group("/index")
 	{
 		//r.LoadHTMLGlob("static/views/*")
-		r.LoadHTMLFiles("static/views/index.html")
+		r.LoadHTMLFiles(*templatePath)
 		index.GET("/", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "index.html", gin.H{
 				"title": "Cron Job Management",
