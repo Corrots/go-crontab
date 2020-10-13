@@ -1,0 +1,24 @@
+[Unit]
+Description=Go Crontab Web Server
+Documentation=https://github.com/Corrots/go-crontab
+Requires=network-online.target
+After=network.target
+
+[Service]
+User=work
+Group=work
+# 进程退出立即重启
+Restart=always
+Environment="OPTIONS=--c /home/dev/crontab/web/conf.yaml"
+# 启动指令
+ExecStart=/home/dev/crontab/web/main $OPTIONS
+#ExecStartPre=/usr/bin/mkdir -p /var/run/mongodb
+ExecStartPre=/usr/bin/useradd -g work work
+ExecStartPre=/usr/bin/chown work:work /home/dev/crontab/web
+#ExecStartPre=/usr/bin/chmod 0755 /var/run/mongodb
+# 服务类型
+Type=simple
+
+[Install]
+# 在系统启动后加载Unit
+WantedBy=multi-user.target

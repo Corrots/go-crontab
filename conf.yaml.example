@@ -1,12 +1,8 @@
 app:
   debug: true
 
-
 web:
-  port: ":8070"
-  readTimeout: 5000
-  writeTimeout: 5000
-  staticFilename: "/home/dev/crontab/web/static/views/index.tpl"
+  port: ":8080"
 
 etcd:
   endpoints: "http://192.168.56.25:2379"
