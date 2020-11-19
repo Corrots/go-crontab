@@ -1,0 +1,24 @@
+[Unit]
+Description=Go Crontab Web Server
+Documentation=https://github.com/Corrots/go-crontab
+#Requires=network-online.target
+After=network.target
+
+[Service]
+User=work
+Group=work
+# 进程何时重启
+Restart=on-failure
+# 启动指令
+PermissionsStartOnly=true
+workingDirectory=/home/dev/crontab/web
+ExecStart=/home/dev/crontab/web/main --c /home/dev/crontab/web/conf.yaml
+#ExecStartPre=+/bin/useradd -g work work
+#ExecStartPre=+/bin/chown work:work /home/dev/crontab/web
+#ExecStartPre=+/bin/chmod -R 0755 /home/dev/crontab/web/
+# 服务类型
+Type=simple
+
+[Install]
+# 在系统启动后加载Unit
+WantedBy=multi-user.target
