@@ -68,7 +68,7 @@ func (s *Scheduler) getInterval() time.Duration {
 	var nearestTime time.Time
 	for _, plan := range s.PlanTable {
 		if plan.NextTime.Unix() <= now.Unix() {
-			// @TODO task已到执行时间，尝试执行
+			//@TODO task已到执行时间，尝试执行
 			s.execute(plan)
 			plan.NextTime = plan.Expr.Next(now)
 		}
