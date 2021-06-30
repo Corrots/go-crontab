@@ -39,6 +39,7 @@ func (r *Register) KeepOnline() error {
 	ctx, cancel := context.WithCancel(context.TODO())
 	lease, err := r.Lease.Grant(ctx, DefaultLeaseTTL)
 	if err != nil {
+		cancel()
 		return fmt.Errorf("lease grant err: %v\n", err)
 	}
 	// 自动续租
@@ -61,5 +62,6 @@ func (r *Register) KeepOnline() error {
 			}
 		}
 	}()
+	cancel()
 	return nil
 }
